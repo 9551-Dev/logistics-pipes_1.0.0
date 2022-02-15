@@ -1,0 +1,48 @@
+local api = require("__logistics-pipes__/api.lua")
+
+data:extend({
+    {
+        type="sprite",
+        name="logistics-pipe-connection-powered-top",
+        filename="__logistics-pipes__/graphics/misc/pipestates/powered.png",
+        x=3,
+        y=0,
+        width=10,
+        height=4,
+        scale=2,
+        shift=api.util.by_pixel(0,12)
+    },
+    {
+        type="sprite",
+        name="logistics-pipe-connection-powered-right",
+        filename="__logistics-pipes__/graphics/misc/pipestates/powered.png",
+        x=12,
+        y=3,
+        width=4,
+        height=10,
+        scale=2,
+        shift=api.util.by_pixel(12,0)
+    },
+    {
+        type="sprite",
+        name="logistics-pipe-connection-powered-bottom",
+        filename="__logistics-pipes__/graphics/misc/pipestates/powered.png",
+        x=3,
+        y=12,
+        width=10,
+        height=4,
+        scale=2,
+        shift=api.util.by_pixel(0,-12)
+    },
+    {
+        type="sprite",
+        name="logistics-pipe-connection-powered-left",
+        filename="__logistics-pipes__/graphics/misc/pipestates/powered.png",
+        x=0,
+        y=3,
+        width=4,
+        height=10,
+        scale=2,
+        shift=api.util.by_pixel(-12,0)
+    }
+})
