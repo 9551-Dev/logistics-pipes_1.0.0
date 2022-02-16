@@ -28,22 +28,22 @@ end)
 local powerJunctionConnectorBase = {
     {
         sprite="logistics-pipe-connection-powered-top",
-        visible=true,
+        visible=false,
         target={}
     },
     {
         sprite="logistics-pipe-connection-powered-right",
-        visible=true,
+        visible=false,
         target={}
     },
     {
         sprite="logistics-pipe-connection-powered-bottom",
-        visible=true,
+        visible=false,
         target={}
     },
     {
         sprite="logistics-pipe-connection-powered-left",
-        visible=true,
+        visible=false,
         target={}
     }
 }
@@ -207,8 +207,27 @@ script.on_nth_tick(60,function()
     for surface,xList in pairs(global.power_junctions) do
         for x,yList in pairs(xList) do
             for y,data in pairs(yList) do
-                --updatePipeStates(data.entity)
+                if not global.junction_power_levels[surface][x][y] then global.junction_power_levels[surface][x][y] = {cur=0} end
+                global.junction_power_levels[surface][x][y] = {
+                    prev = global.junction_power_levels[surface][x][y].cur or 0,
+                    cur = data.entity.energy
+                }
+                if global.junction_power_levels[surface][x][y].prev < 2000001 and global.junction_power_levels[surface][x][y].cur > 2000001 then
+                    updatePipeStates(data.entity)
+                end
+                if global.junction_power_levels[surface][x][y].prev > 2000001 and global.junction_power_levels[surface][x][y].cur < 2000001 then
+                    updatePipeStates(data.entity)
+                end
             end
+        end
+    end
+end)
+
+script.on_event("lp-on-entity-click",function(event)
+    local player = game.get_player(event.player_index)
+    if player.selected then
+        if event.input_name == "lp-on-entity-click" and player.selected.prototype.type == "wall" then
+            game.print("clicked")
         end
     end
 end)
