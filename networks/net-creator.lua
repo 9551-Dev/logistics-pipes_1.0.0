@@ -22,30 +22,34 @@ local function get2DarraySquareWH(array)
 end
 
 
-local flood
-function flood(entity,visited,positiveSourceCount)
-    if not positiveSourceCount then positiveSourceCount = 0 end
-    if not visited then visited = api.array_manipulation.create2Darray() end
-    local positionVector = entity.position
-    for k,v in pairs(sidesIterator) do
-        local relPos = {x=positionVector.x+v[1],y=positionVector.y+v[2]}
-        if not visited[relPos.x][relPos.y] then
-            local filter = api.util.table.deepcopy(baseNetworkFilter)
-            filter.position = relPos
-            local nextEntities = entity.surface.find_entities_filtered(filter)
-            for k,entity in pairs(nextEntities or {}) do
-                if entity.name == "logistics-power-junction" then
-                    if entity.energy > 2000000 then
-                        positiveSourceCount = positiveSourceCount + 1
+local function flood(entity)
+    local flood_internal
+    local positiveSourceCount = 0
+    function flood_internal(entity,visited)
+        if not visited then visited = api.array_manipulation.create2Darray() end
+        local positionVector = entity.position
+        for k,v in pairs(sidesIterator) do
+            local relPos = {x=positionVector.x+v[1],y=positionVector.y+v[2]}
+            if not visited[relPos.x][relPos.y] then
+                local filter = api.util.table.deepcopy(baseNetworkFilter)
+                filter.position = relPos
+                local nextEntities = entity.surface.find_entities_filtered(filter)
+                for k,entity in pairs(nextEntities or {}) do
+                    if entity.name == "logistics-power-junction" or entity.name == "logistics-power-junction-dummy" then
+                        if entity.energy > 2000001 then
+                            positiveSourceCount = positiveSourceCount + 1
+                            game.print(positiveSourceCount)
+                        end
+                    else
+                        visited[relPos.x][relPos.y] = true
                     end
-                else
-                    visited[relPos.x][relPos.y] = true
+                    flood_internal(entity,visited)
                 end
-                flood(entity,visited,positiveSourceCount)
             end
         end
+        return visited
     end
-    return visited,positiveSourceCount
+    return flood_internal(entity),positiveSourceCount
 end
 
 

@@ -79,9 +79,7 @@ local function updatePipeStates(entity)
         local filterHigh = api.util.table.deepcopy(baseNetworkFilter)
         filterHigh.position = relPos
         local ent = entity.surface.find_entities_filtered(filterHigh)[1]
-        game.print("test")
         if ent then
-            game.print("ran")
             global.networks[entity.unit_number][k].temp_flooding = {flood.flood(ent)}
             local filter = api.util.table.deepcopy(baseNetworkFilter)
             local flood,sources = table.unpack(global.networks[entity.unit_number][k].temp_flooding)
@@ -89,7 +87,6 @@ local function updatePipeStates(entity)
                 for y,_ in pairs(yList) do
                     filter.position = {x=x,y=y}
                     for k,v in pairs(entity.surface.find_entities_filtered(filter) or {}) do
-                        game.print(sources)
                         if sources > 0 then
                             local surface = v.surface.index
                             local name = v.name:gsub("%-powered","")
@@ -120,6 +117,7 @@ end
 
 local function addNewPowerJunction(entity)
     game.print("new junction added")
+    entity.energy = 0
     updatePipeStates(entity)
     local connectors = {}
     for k,v in pairs(sidesIterator) do
@@ -136,6 +134,7 @@ end
 
 local function removePowerJunction(entity)
     game.print("removed junction")
+    entity.energy = 0
     updatePipeStates(entity)
     for k,connectionID in pairs(global.power_junctions[entity.surface.index][entity.position.x][entity.position.y].connectors) do
         rendering.destroy(connectionID)
