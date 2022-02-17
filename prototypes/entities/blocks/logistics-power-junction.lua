@@ -112,7 +112,7 @@ data:extend({
     },
     {
         type="accumulator",
-        name="logistics-power-junction-dummy",
+        name="logistics-power-junction-ignore",
         icon="__logistics-pipes__/graphics/atlases/empty.png",
         icon_size=1 ,
         localised_name="logistics power junction",
@@ -120,7 +120,7 @@ data:extend({
         charge_cooldown=5,
         discharge_cooldown=5,
         energy_source={
-            buffer_capacity="0J",
+            buffer_capacity="1000000J",
             usage_priority="primary-output",
             input_flow_limit="0W",
             output_flow_limit="0W",
@@ -132,7 +132,6 @@ data:extend({
             "not-rotatable",
             "hidden",
             "not-in-kill-statistics",
-            "not-deconstructable"
         },
         selectable_in_game=false,
         resistances=resistances,

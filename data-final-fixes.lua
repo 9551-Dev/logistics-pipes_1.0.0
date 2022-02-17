@@ -1,4 +1,4 @@
---[[ giving pipes additional propperties ]]--
+--[[ giving pipes additional propperties ]]
 local lookup = require("__logistics-pipes__/tools.lua").namesLookup
 for _, wall in pairs(data.raw["wall"]) do
     if lookup[wall.name] then

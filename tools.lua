@@ -33,6 +33,7 @@ end
 
 local lookUpDeepCopy = api.util.table.deepcopy(namesLookup)
 lookUpDeepCopy["logistics-power-junction"] = true
+lookUpDeepCopy["logistics-power-junction-dummy"] = true
 local names = {}
 for k,v in pairs(lookUpDeepCopy) do
     table.insert(names,k)

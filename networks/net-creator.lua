@@ -25,12 +25,13 @@ end
 local function flood(entity)
     local flood_internal
     local positiveSourceCount = 0
-    function flood_internal(entity,visited)
+    function flood_internal(entity,visited,visited_junctions)
         if not visited then visited = api.array_manipulation.create2Darray() end
+        if not visited_junctions then visited_junctions = api.array_manipulation.create2Darray() end
         local positionVector = entity.position
         for k,v in pairs(sidesIterator) do
             local relPos = {x=positionVector.x+v[1],y=positionVector.y+v[2]}
-            if not visited[relPos.x][relPos.y] then
+            if not visited[relPos.x][relPos.y] and not visited_junctions[relPos.x][relPos.y] then
                 local filter = api.util.table.deepcopy(baseNetworkFilter)
                 filter.position = relPos
                 local nextEntities = entity.surface.find_entities_filtered(filter)
@@ -40,10 +41,11 @@ local function flood(entity)
                             positiveSourceCount = positiveSourceCount + 1
                             game.print(positiveSourceCount)
                         end
+                        visited_junctions[relPos.x][relPos.y] = true
                     else
                         visited[relPos.x][relPos.y] = true
                     end
-                    flood_internal(entity,visited)
+                    flood_internal(entity,visited,visited_junctions)
                 end
             end
         end

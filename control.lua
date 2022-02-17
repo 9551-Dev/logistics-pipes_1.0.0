@@ -2,6 +2,7 @@ local api = require("__logistics-pipes__/api.lua")
 local flood = require("__logistics-pipes__/networks/net-creator.lua")
 local baseNetworkFilter = require("__logistics-pipes__/tools.lua").baseNetworkFilter
 local namesLookup = require("__logistics-pipes__/tools.lua").namesLookup
+require('__debugadapter__/debugadapter.lua')
 
 script.on_init(function()
     if not global.power_junctions then
@@ -55,70 +56,62 @@ local sidesIterator = {
     {1,0}
 }
 
-local function getNeighboring(entity)
-    local x,y = entity.position.x,entity.position.y
-    local neighbors = {}
-    for k,v in pairs(sidesIterator) do
-        local relPos = {x=x+v[1],y=y+v[2]}
-        local filter = api.util.table.deepcopy(baseNetworkFilter)
-        filter.position = relPos
-        neighbors[k] = entity.surface.find_entities_filtered(filter)[1]
-    end
-    return neighbors
-end
-
-local function updatePipeStates(entity)
-    local x,y = entity.position.x,entity.position.y
-    for k,v in pairs(sidesIterator) do
-        local relPos = {x=x+v[1],y=y+v[2]}
-        global.networks[entity.unit_number][k] = {
-            data={},
-            field={},
-            temp_flooding={}
-        }
-        local filterHigh = api.util.table.deepcopy(baseNetworkFilter)
-        filterHigh.position = relPos
-        local ent = entity.surface.find_entities_filtered(filterHigh)[1]
-        if ent then
-            global.networks[entity.unit_number][k].temp_flooding = {flood.flood(ent)}
+local function update_networks_data(dimension,cordinates)
+    local function update_networks_dataInternal(dimension,cordinates)
+        local junction = dimension.find_entity("logistics-power-junction",cordinates)
+        for k,v in pairs(sidesIterator) do
+            local relCords = {x=cordinates.x+v[1],y=cordinates.y+v[2]}
+            global.networks[junction.unit_number][k] = {
+                tempflood={},
+                grid={},
+                pipes={},
+                actions={},
+                src=junction,
+                srcCounts={}
+            }
             local filter = api.util.table.deepcopy(baseNetworkFilter)
-            local flood,sources = table.unpack(global.networks[entity.unit_number][k].temp_flooding)
-            for x,yList in pairs(flood or {}) do
-                for y,_ in pairs(yList) do
-                    filter.position = {x=x,y=y}
-                    for k,v in pairs(entity.surface.find_entities_filtered(filter) or {}) do
-                        if sources > 0 then
-                            local surface = v.surface.index
-                            local name = v.name:gsub("%-powered","")
-                            v.destroy()
-                            game.surfaces[surface].create_entity({
-                                name=name.."-powered",
-                                position = filter.position,
-                                force="neutral",
-                                create_build_effect_smoke=false
-                            })
-                        else
-                            local surface = v.surface.index
-                            local name = v.name
-                            v.destroy()
-                            game.surfaces[surface].create_entity({
-                                name=name:gsub("%-powered",""),
-                                position = filter.position,
-                                force="neutral",
-                                create_build_effect_smoke=false
-                            })
+            filter.position = relCords
+            local ent = dimension.find_entities_filtered(filter)[1]
+            if ent then
+                local net,srcCount = flood.flood(ent)
+                if global.networks[junction.unit_number][k].srcCounts.cur then global.networks[junction.unit_number][k].srcCounts.cur = srcCount end
+                if not global.networks[junction.unit_number][k].srcCounts.prev then global.networks[junction.unit_number][k].srcCounts.prev = math.huge end
+                for x,yList in pairs(net) do
+                    for y,bool in pairs(yList) do
+                        local filt = api.util.table.deepcopy(baseNetworkFilter)
+                        filt.position = {x=y,y=y}
+                        game.print("got here 1")
+                        local out = dimension.find_entities_filtered(filt or {})
+                        log(serpent.block(out))
+                        for k,data in pairs(out or {}) do
+                            game.print("got here 2")
+                            if global.networks[junction.unit_number][k].srcCounts.prev ~= srcCount then
+                                if srcCount > 0 then
+                                    local name = data.name
+                                    local surface = dimension
+                                    data.destroy(surface.create_entity({
+                                        name=name.."-powered",
+                                        position = filter.position,
+                                        force="neutral",
+                                        create_build_effect_smoke=false
+                                    }))
+                                else
+                                end
+                            end
                         end
                     end
                 end
+                global.networks[junction.unit_number][k].srcCounts.prev = srcCount
             end
         end
     end
+    update_networks_dataInternal(dimension,cordinates)
 end
 
 local function addNewPowerJunction(entity)
     game.print("new junction added")
     entity.energy = 0
-    updatePipeStates(entity)
+    update_networks_data(entity.surface,entity.position)
     local connectors = {}
     for k,v in pairs(sidesIterator) do
         local curDat = api.util.table.deepcopy(powerJunctionConnectorBase[k])
@@ -134,8 +127,7 @@ end
 
 local function removePowerJunction(entity)
     game.print("removed junction")
-    entity.energy = 0
-    updatePipeStates(entity)
+    update_networks_data(entity.surface,entity.position)
     for k,connectionID in pairs(global.power_junctions[entity.surface.index][entity.position.x][entity.position.y].connectors) do
         rendering.destroy(connectionID)
     end
@@ -143,24 +135,22 @@ local function removePowerJunction(entity)
 end
 
 local function onPlace(event)
+    log("place")
     local entity = event.created_entity or event.entity or event.destination
     if entity.name == "logistics-power-junction" then addNewPowerJunction(entity) end
 end
-
+i=0
 local function onDestroy(event)
-    local entity = event.entity
-    if entity.name == "logistics-power-junction" then removePowerJunction(entity) end
-    if namesLookup[entity.name] then
-        local surface,posVector = entity.surface,entity.position
-        entity = surface.create_entity({
-            name="logistics-power-junction-dummy",
-            position = posVector,
-            force="neutral",
-            create_build_effect_smoke=false
-        })
-        updatePipeStates(entity)
+    local entity = api.util.table.deepcopy(event.entity)
+    local player = game.get_player(event.player_index)
+    if entity.name == "logistics-power-junction-dummy" then removePowerJunction(entity) end
+    --[[if namesLookup[entity.name] then
+        local surface = entity.surface
+        local position = entity.position
         entity.destroy()
-    end
+        for k,v in pairs(sidesIterator) do
+        end
+    end]]
 end
 
 local function updatePowerJunctionConnections()
@@ -212,10 +202,10 @@ script.on_nth_tick(60,function()
                     cur = data.entity.energy
                 }
                 if global.junction_power_levels[surface][x][y].prev < 2000001 and global.junction_power_levels[surface][x][y].cur > 2000001 then
-                    updatePipeStates(data.entity)
+                    update_networks_data(data.entity.surface,data.entity.position)
                 end
                 if global.junction_power_levels[surface][x][y].prev > 2000001 and global.junction_power_levels[surface][x][y].cur < 2000001 then
-                    updatePipeStates(data.entity)
+                    update_networks_data(data.entity.surface,data.entity.position)
                 end
             end
         end
@@ -224,6 +214,7 @@ end)
 
 script.on_event("lp-on-entity-click",function(event)
     local player = game.get_player(event.player_index)
+    
     if player.selected then
         if event.input_name == "lp-on-entity-click" and player.selected.prototype.type == "wall" then
             game.print("clicked")
