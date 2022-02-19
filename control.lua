@@ -87,24 +87,28 @@ local function update_networks_data(dimension,cordinates)
                             if global.networks[junction.unit_number][k].srcCounts.prev ~= srcCount then
                                 local name = data.name
                                 local surface = dimension
+                                local position = data.position
+                                local ent
                                 if srcCount > 0 then
                                     data.destroy()
-                                    surface.create_entity({
-                                        name=name.."-powered",
-                                        position = filter.position,
+                                    ent = surface.create_entity({
+                                        name=name:gsub("powered",0).."-powered",
+                                        position = position,
                                         force="neutral",
                                         create_build_effect_smoke=false
                                     })
+                                    log(ent.name)
                                 else
                                     data.destroy()
-                                    log(name:gsub("%-powered",""))
-                                    surface.create_entity({
+                                    ent = surface.create_entity({
                                         name=name:gsub("%-powered",""),
-                                        position = filter.position,
+                                        position = position,
                                         force="neutral",
                                         create_build_effect_smoke=false
                                     })
+                                    log(ent.name)
                                 end
+                                log((ent or {name="none"}).name)
                             end
                         end
                     end
