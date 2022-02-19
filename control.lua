@@ -79,16 +79,15 @@ local function update_networks_data(dimension,cordinates)
                 for x,yList in pairs(net) do
                     for y,bool in pairs(yList) do
                         local filt = api.util.table.deepcopy(baseNetworkFilter)
-                        filt.position = {x=y,y=y}
+                        filt.position = {x=x,y=y}
                         game.print("got here 1")
                         local out = dimension.find_entities_filtered(filt or {})
-                        log(serpent.block(out))
                         for k,data in pairs(out or {}) do
                             game.print("got here 2")
                             if global.networks[junction.unit_number][k].srcCounts.prev ~= srcCount then
+                                local name = data.name
+                                local surface = dimension
                                 if srcCount > 0 then
-                                    local name = data.name
-                                    local surface = dimension
                                     data.destroy()
                                     surface.create_entity({
                                         name=name.."-powered",
@@ -97,6 +96,14 @@ local function update_networks_data(dimension,cordinates)
                                         create_build_effect_smoke=false
                                     })
                                 else
+                                    data.destroy()
+                                    log(name:gsub("%-powered",""))
+                                    surface.create_entity({
+                                        name=name:gsub("%-powered",""),
+                                        position = filter.position,
+                                        force="neutral",
+                                        create_build_effect_smoke=false
+                                    })
                                 end
                             end
                         end
@@ -170,7 +177,7 @@ local function updatePowerJunctionConnections()
                             rendering.set_visible(connectors[indice],false)
                         end
                     end
-                
+                else
                     removePowerJunction(entity)
                 end
             end
