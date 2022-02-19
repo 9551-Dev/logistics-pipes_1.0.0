@@ -144,7 +144,7 @@ end
 i=0
 local function onDestroy(event)
     local entity = api.util.table.deepcopy(event.entity)
-    local player = game.get_player(event.player_index)
+    -- local player = game.get_player(event.player_index)
     if entity.name == "logistics-power-junction-dummy" then removePowerJunction(entity) end
     --[[if namesLookup[entity.name] then
         local surface = entity.surface
@@ -216,7 +216,7 @@ end)
 
 script.on_event("lp-on-entity-click",function(event)
     local player = game.get_player(event.player_index)
-    
+
     if player.selected then
         if event.input_name == "lp-on-entity-click" and player.selected.prototype.type == "wall" then
             game.print("clicked")
