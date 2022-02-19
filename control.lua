@@ -143,7 +143,7 @@ local function removePowerJunction(entity)
 end
 
 local function onPlace(event)
-    game.print("onPlace")
+    -- game.print("onPlace")
     local entity = event.created_entity or event.entity or event.destination
     if entity.name == "logistics-power-junction" then addNewPowerJunction(entity) end
 end
