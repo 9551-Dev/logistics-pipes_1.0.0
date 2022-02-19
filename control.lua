@@ -89,12 +89,13 @@ local function update_networks_data(dimension,cordinates)
                                 if srcCount > 0 then
                                     local name = data.name
                                     local surface = dimension
-                                    data.destroy(surface.create_entity({
+                                    data.destroy()
+                                    surface.create_entity({
                                         name=name.."-powered",
                                         position = filter.position,
                                         force="neutral",
                                         create_build_effect_smoke=false
-                                    }))
+                                    })
                                 else
                                 end
                             end
@@ -169,7 +170,7 @@ local function updatePowerJunctionConnections()
                             rendering.set_visible(connectors[indice],false)
                         end
                     end
-                else
+                
                     removePowerJunction(entity)
                 end
             end
