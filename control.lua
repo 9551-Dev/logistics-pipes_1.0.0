@@ -2,9 +2,7 @@ local api = require("__logistics-pipes__/api.lua")
 local flood = require("__logistics-pipes__/networks/net-creator.lua")
 local baseNetworkFilter = require("__logistics-pipes__/tools.lua").baseNetworkFilter
 local namesLookup = require("__logistics-pipes__/tools.lua").namesLookup
-if mods["debugadapter"] then
-  require('__debugadapter__/debugadapter.lua')
-end
+-- require('__debugadapter__/debugadapter.lua')
 
 script.on_init(function()
     if not global.power_junctions then
