@@ -116,7 +116,6 @@ local function update_networks_data(dimension,cordinates)
                 global.networks[netID][k].field = {
 
                 }
-                global.networks[netID][k].srcCounts.prev = srcCount
             end
         end
     end
@@ -217,13 +216,22 @@ script.on_nth_tick(60,function()
                         cur = data.entity.energy
                     }
                     if global.junction_power_levels[surface][x][y].prev < 2000001 and global.junction_power_levels[surface][x][y].cur > 2000001 then
-                        global.networks[surface][x][y].srcCount = global.networks[surface][x][y].srcCount + 1
-                        update_pipe_states(global.networks[surface][x][y],game.get_surface(surface),global.networks[surface][x][y].srcCount)
-                        update_networks_data(data.entity.surface,data.entity.position)
+                        for k=1,4 do
+                            if next(global.networks[surface][k] or {}) then
+                                global.networks[surface][k].srcCount = global.networks[surface][k].srcCount - 1
+                                update_pipe_states(global.networks[surface][k],game.get_surface(surface),global.networks[surface][k].srcCount)
+                                game.print(global.networks[surface][k].srcCount)
+                            end
+                        end
                     end
                     if global.junction_power_levels[surface][x][y].prev > 2000001 and global.junction_power_levels[surface][x][y].cur < 2000001 then
-                        global.networks[surface][x][y].srcCount = global.networks[surface][x][y].srcCount - 1
-                        update_networks_data(data.entity.surface,data.entity.position,global.networks[surface][x][y].srcCount)
+                        for k=1,4 do
+                            if next(global.networks[surface][k] or {}) then
+                                global.networks[surface][k].srcCount = global.networks[surface][k].srcCount - 1
+                                update_pipe_states(global.networks[surface][k],game.get_surface(surface),global.networks[surface][k].srcCount)
+                                game.print(global.networks[surface][k].srcCount)    
+                            end
+                        end
                     end
                 else
                     for k,connectionID in pairs(global.power_junctions[surface][x][y].connectors) do
