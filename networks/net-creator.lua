@@ -25,9 +25,10 @@ end
 local function flood(entity)
     local flood_internal
     local positiveSourceCount = 0
-    function flood_internal(entity,visited,visited_junctions)
+    function flood_internal(entity,visited,visited_junctions,maxid)
         if not visited then visited = api.array_manipulation.create2Darray() end
         if not visited_junctions then visited_junctions = api.array_manipulation.create2Darray() end
+        if not maxid then maxid = -math.huge end
         local positionVector = entity.position
         for k,v in pairs(sidesIterator) do
             local relPos = {x=positionVector.x+v[1],y=positionVector.y+v[2]}
@@ -39,19 +40,21 @@ local function flood(entity)
                     if entity.name == "logistics-power-junction" or entity.name == "logistics-power-junction-dummy" then
                         if entity.energy > 2000001 then
                             positiveSourceCount = positiveSourceCount + 1
-                            game.print(positiveSourceCount)
                         end
                         visited_junctions[relPos.x][relPos.y] = true
+                        maxid = math.max(maxid,entity.unit_number)
                     else
                         visited[relPos.x][relPos.y] = true
                     end
-                    flood_internal(entity,visited,visited_junctions)
+                    --wait small time
+                    flood_internal(entity,visited,visited_junctions,maxid)
                 end
             end
         end
-        return visited
+        return visited,maxid
     end
-    return flood_internal(entity),positiveSourceCount
+    local out,maxid = flood_internal(entity)
+    return out,positiveSourceCount,maxid
 end
 
 

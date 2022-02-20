@@ -9,6 +9,7 @@ script.on_init(function()
         global.power_junctions = api.array_manipulation.create3Darray()
         global.networks = api.array_manipulation.create2Darray()
         global.junction_power_levels = api.array_manipulation.create3Darray()
+        global.surfaces = {}
         for k,v in pairs(game.surfaces) do
             local powerJunctionsSurface = v.find_entities_filtered({
                 name="logistics-power-junction",
@@ -61,30 +62,29 @@ local function update_networks_data(dimension,cordinates)
         local junction = dimension.find_entity("logistics-power-junction",cordinates)
         for k,v in pairs(sidesIterator) do
             local relCords = {x=cordinates.x+v[1],y=cordinates.y+v[2]}
-            global.networks[junction.unit_number][k] = {
-                tempflood={},
-                grid={},
-                pipes={},
-                actions={},
-                src=junction,
-                srcCounts={}
-            }
             local filter = api.util.table.deepcopy(baseNetworkFilter)
             filter.position = relCords
             local ent = dimension.find_entities_filtered(filter)[1]
             if ent then
-                local net,srcCount = flood.flood(ent)
-                if global.networks[junction.unit_number][k].srcCounts.cur then global.networks[junction.unit_number][k].srcCounts.cur = srcCount end
-                if not global.networks[junction.unit_number][k].srcCounts.prev then global.networks[junction.unit_number][k].srcCounts.prev = math.huge end
+                local net,srcCount,netID = flood.flood(ent)
+                log("netid "..netID)
+                global.networks[netID][k] = {
+                    tempflood=net,
+                    grid={},
+                    pipes={},
+                    actions={},
+                    src=junction,
+                    srcCounts={}
+                }
+                if global.networks[netID][k].srcCounts.cur then global.networks[netID][k].srcCounts.cur = srcCount end
+                if not global.networks[netID][k].srcCounts.prev then global.networks[netID][k].srcCounts.prev = math.huge end
                 for x,yList in pairs(net) do
                     for y,bool in pairs(yList) do
                         local filt = api.util.table.deepcopy(baseNetworkFilter)
                         filt.position = {x=x,y=y}
-                        game.print("got here 1")
                         local out = dimension.find_entities_filtered(filt or {})
-                        for k,data in pairs(out or {}) do
-                            game.print("got here 2")
-                            if global.networks[junction.unit_number][k].srcCounts.prev ~= srcCount then
+                        for _,data in pairs(out or {}) do
+                            if global.networks[netID][k].srcCounts.prev ~= srcCount then
                                 local name = data.name
                                 local surface = dimension
                                 local position = data.position
@@ -92,7 +92,7 @@ local function update_networks_data(dimension,cordinates)
                                 if srcCount > 0 then
                                     data.destroy()
                                     ent = surface.create_entity({
-                                        name=name:gsub("powered",0).."-powered",
+                                        name=name:gsub("-powered","").."-powered",
                                         position = position,
                                         force="neutral",
                                         create_build_effect_smoke=false
@@ -113,7 +113,7 @@ local function update_networks_data(dimension,cordinates)
                         end
                     end
                 end
-                global.networks[junction.unit_number][k].srcCounts.prev = srcCount
+                global.networks[netID][k].srcCounts.prev = srcCount
             end
         end
     end
@@ -129,6 +129,7 @@ local function addNewPowerJunction(entity)
         local curDat = api.util.table.deepcopy(powerJunctionConnectorBase[k])
         curDat.target.x,curDat.target.y = entity.position.x+v[1],entity.position.y+v[2]
         curDat.surface = entity.surface.index
+        game.print("creating sprites")
         table.insert(connectors,rendering.draw_sprite(curDat))
     end
     global.power_junctions[entity.surface.index][entity.position.x][entity.position.y] = {
@@ -139,11 +140,14 @@ end
 
 local function removePowerJunction(entity)
     game.print("removed junction")
-    update_networks_data(entity.surface,entity.position)
-    for k,connectionID in pairs(global.power_junctions[entity.surface.index][entity.position.x][entity.position.y].connectors) do
-        rendering.destroy(connectionID)
+    if entity.valid then
+        entity.energy = 0
+        update_networks_data(entity.surface,entity.position)
+        for k,connectionID in pairs(global.power_junctions[entity.surface.index][entity.position.x][entity.position.y].connectors) do
+            rendering.destroy(connectionID)
+        end
+        global.power_junctions[entity.surface.index][entity.position.x][entity.position.y] = nil
     end
-    global.power_junctions[entity.surface.index][entity.position.x][entity.position.y] = nil
 end
 
 local function onPlace(event)
@@ -151,11 +155,10 @@ local function onPlace(event)
     local entity = event.created_entity or event.entity or event.destination
     if entity.name == "logistics-power-junction" then addNewPowerJunction(entity) end
 end
-i=0
+
 local function onDestroy(event)
     local entity = api.util.table.deepcopy(event.entity)
-    local player = game.get_player(event.player_index)
-    if entity.name == "logistics-power-junction-dummy" then removePowerJunction(entity) end
+    if entity.name == "logistics-power-junction" then removePowerJunction(entity) end
     --[[if namesLookup[entity.name] then
         local surface = entity.surface
         local position = entity.position
@@ -208,16 +211,24 @@ script.on_nth_tick(60,function()
     for surface,xList in pairs(global.power_junctions) do
         for x,yList in pairs(xList) do
             for y,data in pairs(yList) do
-                if not global.junction_power_levels[surface][x][y] then global.junction_power_levels[surface][x][y] = {cur=0} end
-                global.junction_power_levels[surface][x][y] = {
-                    prev = global.junction_power_levels[surface][x][y].cur or 0,
-                    cur = data.entity.energy
-                }
-                if global.junction_power_levels[surface][x][y].prev < 2000001 and global.junction_power_levels[surface][x][y].cur > 2000001 then
-                    update_networks_data(data.entity.surface,data.entity.position)
-                end
-                if global.junction_power_levels[surface][x][y].prev > 2000001 and global.junction_power_levels[surface][x][y].cur < 2000001 then
-                    update_networks_data(data.entity.surface,data.entity.position)
+                if data.entity.valid then
+                    if not global.junction_power_levels[surface][x][y] then global.junction_power_levels[surface][x][y] = {cur=0} end
+                    global.junction_power_levels[surface][x][y] = {
+                        prev = global.junction_power_levels[surface][x][y].cur or 0,
+                        cur = data.entity.energy
+                    }
+                    if global.junction_power_levels[surface][x][y].prev < 2000001 and global.junction_power_levels[surface][x][y].cur > 2000001 then
+                        update_networks_data(data.entity.surface,data.entity.position)
+                    end
+                    if global.junction_power_levels[surface][x][y].prev > 2000001 and global.junction_power_levels[surface][x][y].cur < 2000001 then
+                        update_networks_data(data.entity.surface,data.entity.position)
+                    end
+                else
+                    for k,connectionID in pairs(global.power_junctions[surface][x][y].connectors) do
+                        rendering.destroy(connectionID)
+                    end
+                    global.power_junctions[surface][x][y] = nil 
+                    game.print("emergency removal")
                 end
             end
         end
