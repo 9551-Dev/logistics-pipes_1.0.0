@@ -23,9 +23,11 @@ end
 
 
 local function flood(entity)
+    log("flood start")
     local flood_internal
     local positiveSourceCount = 0
-    function flood_internal(entity,visited,visited_junctions,maxid)
+    function flood_internal(entity,visited,visited_junctions,maxid,src)
+        log("flooded")
         if not visited then visited = api.array_manipulation.create2Darray() end
         if not visited_junctions then visited_junctions = api.array_manipulation.create2Darray() end
         if not maxid then maxid = -math.huge end
@@ -42,19 +44,20 @@ local function flood(entity)
                             positiveSourceCount = positiveSourceCount + 1
                         end
                         visited_junctions[relPos.x][relPos.y] = true
+                        if entity.unit_number > maxid then src = entity end
                         maxid = math.max(maxid,entity.unit_number)
                     else
                         visited[relPos.x][relPos.y] = true
                     end
-                    --wait small time
-                    flood_internal(entity,visited,visited_junctions,maxid)
+                    flood_internal(entity,visited,visited_junctions,maxid,src)
                 end
             end
         end
         return visited,maxid
     end
-    local out,maxid = flood_internal(entity)
-    return out,positiveSourceCount,maxid
+    local out,maxid,src = flood_internal(entity)
+    log("flood end")
+    return out,positiveSourceCount,maxid,src
 end
 
 
